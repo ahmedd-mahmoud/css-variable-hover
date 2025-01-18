@@ -12,9 +12,18 @@ interface WatchedFiles {
   additionalFiles: string[];
 }
 
+interface TailwindCustomClasses {
+  [key: string]: {
+    prefix: string;
+    className: string;
+    variable: string;
+  };
+}
+
 let variableCache: VariableCache = {};
 let fileWatcher: vscode.FileSystemWatcher;
 let configWatcher: vscode.FileSystemWatcher;
+let tailwindCustomClasses: TailwindCustomClasses = {};
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("CSS Variables Tailwind extension is now active");
@@ -87,6 +96,7 @@ export function activate(context: vscode.ExtensionContext) {
       "javascriptreact",
       "typescriptreact",
       "vue",
+      "html",
     ],
     {
       async provideHover(
@@ -94,6 +104,10 @@ export function activate(context: vscode.ExtensionContext) {
         position: vscode.Position
       ) {
         const line = document.lineAt(position.line).text;
+        const wordRange = document.getWordRangeAtPosition(position, /[\w-]+/);
+        if (!wordRange) return;
+
+        const word = document.getText(wordRange);
 
         if (
           document.languageId === "vue" &&
@@ -102,11 +116,11 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
+        let matches = [];
+
         // Check for var() usage
         const varRegex = /var\((--[\w-]+)\)/g;
-        let matches = [];
         let match;
-
         while ((match = varRegex.exec(line)) !== null) {
           matches.push({
             variable: match[1],
@@ -119,37 +133,74 @@ export function activate(context: vscode.ExtensionContext) {
           });
         }
 
-        // Check for Tailwind class usage with CSS variables
-        const tailwindRegex = /(?:^|\s)([\w-]+(?:--[\w-]+)[\w-]*)/g;
-        while ((match = tailwindRegex.exec(line)) !== null) {
-          const className = match[1];
-          if (className.includes("--")) {
-            const varName = "--" + className.split("--")[1].split("-")[0];
-            matches.push({
-              variable: varName,
-              range: new vscode.Range(
-                position.line,
-                match.index + (match[0].startsWith(" ") ? 1 : 0),
-                position.line,
-                match.index +
-                  match[1].length +
-                  (match[0].startsWith(" ") ? 1 : 0)
-              ),
-            });
+        // Check for Tailwind class usage
+        const currentClass = word;
+        if (currentClass) {
+          // First check custom Tailwind classes
+          const customClass = Object.entries(tailwindCustomClasses).find(
+            ([key]) => currentClass === key
+          );
+
+          if (customClass) {
+            const [_, config] = customClass;
+            const startPos = line.indexOf(currentClass);
+            if (startPos !== -1) {
+              matches.push({
+                variable: config.variable,
+                range: new vscode.Range(
+                  position.line,
+                  startPos,
+                  position.line,
+                  startPos + currentClass.length
+                ),
+                isCustomClass: true,
+                className: currentClass,
+              });
+            }
+          } else {
+            // Check for direct CSS variable usage in class names
+            const cssVars = Object.keys(variableCache);
+            for (const cssVar of cssVars) {
+              const varName = cssVar.substring(2); // Remove '--' prefix
+              if (currentClass.includes(varName)) {
+                const startPos = line.indexOf(currentClass);
+                if (startPos !== -1) {
+                  matches.push({
+                    variable: cssVar,
+                    range: new vscode.Range(
+                      position.line,
+                      startPos,
+                      position.line,
+                      startPos + currentClass.length
+                    ),
+                  });
+                }
+              }
+            }
           }
         }
 
+        // Find the matching variable under the cursor
         const matchedVar = matches.find((m) => m.range.contains(position));
         if (!matchedVar) return;
 
         const cached = variableCache[matchedVar.variable];
         if (!cached) return;
 
+        // Create hover content
         const markdown = new vscode.MarkdownString();
-        markdown.appendCodeblock(
-          `${matchedVar.variable}: ${cached.value}\n/* Defined in ${cached.source} */`,
-          "css"
-        );
+
+        if (matchedVar.isCustomClass) {
+          markdown.appendCodeblock(
+            `${matchedVar.className} → var(${matchedVar.variable}): ${cached.value}\n/* Defined in ${cached.source} */`,
+            "css"
+          );
+        } else {
+          markdown.appendCodeblock(
+            `${matchedVar.variable}: ${cached.value}\n/* Defined in ${cached.source} */`,
+            "css"
+          );
+        }
 
         return new vscode.Hover(markdown);
       },
@@ -300,7 +351,7 @@ async function updateCacheForFile(uri: vscode.Uri) {
     }
 
     // Find all variable definitions
-    const varDefRegex = /--([\w-]+):\s*([^;]+);/g;
+    const varDefRegex = /--([\w-]+)\s*:\s*([^;]+);/g;
     let match;
 
     while ((match = varDefRegex.exec(searchText)) !== null) {
@@ -313,37 +364,85 @@ async function updateCacheForFile(uri: vscode.Uri) {
     }
 
     // For JS/TS files, look for Tailwind config
-    if (/\.(js|ts|jsx|tsx)$/.test(uri.fsPath)) {
-      // Match both string and template literal syntax
-      const configRegex = /['"`](--.+?)['"`]:\s*['"`]([^'"`]+)['"`]/g;
-      while ((match = configRegex.exec(text)) !== null) {
-        const varName = match[1];
-        const value = match[2];
-        variableCache[varName] = {
-          value,
-          source: relativePath,
-        };
-      }
-
-      // Look for theme extend with CSS variables
-      const themeExtendRegex = /extend:\s*{([^}]+)}/g;
-      while ((match = themeExtendRegex.exec(text)) !== null) {
-        const extendBlock = match[1];
-        const cssVarRegex = /['"`](--.+?)['"`]:\s*['"`]([^'"`]+)['"`]/g;
-        let cssVarMatch;
-        while ((cssVarMatch = cssVarRegex.exec(extendBlock)) !== null) {
-          const varName = cssVarMatch[1];
-          const value = cssVarMatch[2];
-          variableCache[varName] = {
-            value,
-            source: relativePath,
-          };
-        }
+    if (/tailwind\.config\.(js|ts|cjs|mjs)$/.test(uri.fsPath)) {
+      // Parse theme configuration sections
+      const themeContent = extractThemeContent(text);
+      if (themeContent) {
+        await parseTailwindConfig(themeContent, relativePath);
       }
     }
   } catch (error) {
     console.error(`Error updating cache for ${uri.fsPath}:`, error);
   }
+}
+
+function extractThemeContent(text: string): string | null {
+  // Match theme configuration including extend
+  const themeRegex = /theme\s*:\s*{([\s\S]*?)}(?=\s*,|\s*})/;
+  const match = themeRegex.exec(text);
+  return match ? match[1] : null;
+}
+
+async function parseTailwindConfig(themeContent: string, sourcePath: string) {
+  try {
+    // Reset custom classes for this config file
+    tailwindCustomClasses = {};
+
+    // Match different property sections (fontSize, spacing, colors, etc.)
+    const sectionRegex = /(\w+)\s*:\s*{([^}]+)}/g;
+    let sectionMatch;
+
+    while ((sectionMatch = sectionRegex.exec(themeContent)) !== null) {
+      const section = sectionMatch[1];
+      const content = sectionMatch[2];
+
+      // Match custom class definitions with var() usage
+      const customClassRegex =
+        /['"]?([\w-]+)['"]?\s*:\s*['"]var\((--[\w-]+)\)['"]?/g;
+      let classMatch;
+
+      while ((classMatch = customClassRegex.exec(content)) !== null) {
+        const className = classMatch[1];
+        const variable = classMatch[2].match(/--[\w-]+/)?.[0];
+
+        if (variable) {
+          const prefix = getTailwindPrefix(section);
+          if (prefix) {
+            const fullClassName = `${prefix}-${className}`;
+            tailwindCustomClasses[fullClassName] = {
+              prefix,
+              className,
+              variable,
+            };
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error parsing Tailwind config:", error);
+  }
+}
+
+function getTailwindPrefix(section: string): string | null {
+  // Map Tailwind theme sections to their class prefixes
+  const prefixMap: { [key: string]: string } = {
+    fontSize: "text",
+    spacing: "",
+    colors: "",
+    backgroundColor: "bg",
+    textColor: "text",
+    borderColor: "border",
+    margin: "m",
+    padding: "p",
+    width: "w",
+    height: "h",
+    maxWidth: "max-w",
+    maxHeight: "max-h",
+    minWidth: "min-w",
+    minHeight: "min-h",
+  };
+
+  return prefixMap[section] || null;
 }
 
 function findStyleBlocks(text: string): Array<{ start: number; end: number }> {
