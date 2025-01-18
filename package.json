@@ -11,14 +11,42 @@
   ],
   "activationEvents": [
     "onLanguage:css",
-    "onLanguage:scss"
+    "onLanguage:scss",
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "onLanguage:javascriptreact",
+    "onLanguage:typescriptreact",
+    "onLanguage:vue"
   ],
   "main": "./dist/extension.js",
   "contributes": {
-    "commands": []
+    "commands": [
+      {
+        "command": "cssVarHover.refreshCache",
+        "title": "Refresh CSS Variables Cache"
+      }
+    ],
+    "configuration": {
+      "title": "CSS Variable Values",
+      "properties": {
+        "cssVarHover.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable CSS variable value hover"
+        },
+        "cssVarHover.watchedFiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional files to watch for CSS variables"
+        }
+      }
+    }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run package",
     "compile": "webpack",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
