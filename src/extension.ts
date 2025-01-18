@@ -43,7 +43,7 @@ export function activate(context: vscode.ExtensionContext) {
     initializeCache();
   });
 
-  // Update cache when CSS/SCSS files change
+  // Watch for file changes
   fileWatcher.onDidChange((uri) => updateCacheForFile(uri));
   fileWatcher.onDidCreate((uri) => updateCacheForFile(uri));
   fileWatcher.onDidDelete((uri) => {
@@ -53,6 +53,27 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Watch additional files from settings
   setupAdditionalFileWatchers();
+
+  // Watch for active editor changes to check for new variable definitions
+  vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+    if (editor && !isFileWatched(editor.document.uri)) {
+      const hasVariables = await checkForVariableDefinitions(editor.document);
+      if (hasVariables) {
+        const addFile = await vscode.window.showInformationMessage(
+          `Found CSS variable definitions in unwatched file. Would you like to watch ${vscode.workspace.asRelativePath(
+            editor.document.uri
+          )} for CSS variables?`,
+          "Yes",
+          "No"
+        );
+
+        if (addFile === "Yes") {
+          await addFileToWatched(editor.document.uri);
+          await updateCacheForFile(editor.document.uri);
+        }
+      }
+    }
+  });
 
   context.subscriptions.push(fileWatcher, settingsWatcher);
 
@@ -81,9 +102,10 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
 
+        // Check for var() usage
         const varRegex = /var\((--[\w-]+)\)/g;
-        let match;
         let matches = [];
+        let match;
 
         while ((match = varRegex.exec(line)) !== null) {
           matches.push({
@@ -97,31 +119,28 @@ export function activate(context: vscode.ExtensionContext) {
           });
         }
 
-        const matchedVar = matches.find((m) => m.range.contains(position));
-        if (!matchedVar) return;
-
-        console.log("Matched variable:", matchedVar.variable);
-        console.log("Cache:", variableCache[matchedVar.variable]);
-        console.log("File watched:", isFileWatched(document.uri));
-
-        // If variable not in cache and file not watched, prompt to add file
-        if (
-          !variableCache[matchedVar.variable] &&
-          !isFileWatched(document.uri)
-        ) {
-          const addFile = await vscode.window.showInformationMessage(
-            `Found CSS variable in unwatched file. Would you like to watch ${vscode.workspace.asRelativePath(
-              document.uri
-            )} for CSS variables?`,
-            "Yes",
-            "No"
-          );
-
-          if (addFile === "Yes") {
-            await addFileToWatched(document.uri);
-            await updateCacheForFile(document.uri);
+        // Check for Tailwind class usage with CSS variables
+        const tailwindRegex = /(?:^|\s)([\w-]+(?:--[\w-]+)[\w-]*)/g;
+        while ((match = tailwindRegex.exec(line)) !== null) {
+          const className = match[1];
+          if (className.includes("--")) {
+            const varName = "--" + className.split("--")[1].split("-")[0];
+            matches.push({
+              variable: varName,
+              range: new vscode.Range(
+                position.line,
+                match.index + (match[0].startsWith(" ") ? 1 : 0),
+                position.line,
+                match.index +
+                  match[1].length +
+                  (match[0].startsWith(" ") ? 1 : 0)
+              ),
+            });
           }
         }
+
+        const matchedVar = matches.find((m) => m.range.contains(position));
+        if (!matchedVar) return;
 
         const cached = variableCache[matchedVar.variable];
         if (!cached) return;
@@ -295,7 +314,8 @@ async function updateCacheForFile(uri: vscode.Uri) {
 
     // For JS/TS files, look for Tailwind config
     if (/\.(js|ts|jsx|tsx)$/.test(uri.fsPath)) {
-      const configRegex = /['"](--.+?)['"]:\s*['"]([^'"]+)['"]/g;
+      // Match both string and template literal syntax
+      const configRegex = /['"`](--.+?)['"`]:\s*['"`]([^'"`]+)['"`]/g;
       while ((match = configRegex.exec(text)) !== null) {
         const varName = match[1];
         const value = match[2];
@@ -303,6 +323,22 @@ async function updateCacheForFile(uri: vscode.Uri) {
           value,
           source: relativePath,
         };
+      }
+
+      // Look for theme extend with CSS variables
+      const themeExtendRegex = /extend:\s*{([^}]+)}/g;
+      while ((match = themeExtendRegex.exec(text)) !== null) {
+        const extendBlock = match[1];
+        const cssVarRegex = /['"`](--.+?)['"`]:\s*['"`]([^'"`]+)['"`]/g;
+        let cssVarMatch;
+        while ((cssVarMatch = cssVarRegex.exec(extendBlock)) !== null) {
+          const varName = cssVarMatch[1];
+          const value = cssVarMatch[2];
+          variableCache[varName] = {
+            value,
+            source: relativePath,
+          };
+        }
       }
     }
   } catch (error) {
@@ -351,6 +387,14 @@ function isInStyleOrTemplate(
   }
 
   return false;
+}
+
+async function checkForVariableDefinitions(
+  document: vscode.TextDocument
+): Promise<boolean> {
+  const text = document.getText();
+  const varDefRegex = /--([\w-]+):\s*([^;]+);/g;
+  return varDefRegex.test(text);
 }
 
 export function deactivate() {
