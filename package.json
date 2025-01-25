@@ -2,7 +2,7 @@
   "name": "css-variable-hover",
   "displayName": "CSS Variable Hover",
   "description": "Shows CSS variable and Tailwind CSS custom classes values on hover",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "AhmedMahran",
   "license": "MIT",
   "engines": {
