@@ -1,11 +1,29 @@
 {
-  "name": "css-variables",
-  "displayName": "CSS Variable",
-  "description": "Shows CSS variable values",
+  "name": "css-variable-hover",
+  "displayName": "CSS Variable Hover",
+  "description": "Shows CSS variable and Tailwind CSS custom classes values on hover",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.60.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ahmedd-mahmoud/css-variable-hover.git"
+  },
+  "homepage": "https://github.com/ahmedd-mahmoud/css-variable-hover/blob/main/README.md",
+  "icon": "logo.png",
+  "keywords": [
+    "tailwind",
+    "tailwindcss",
+    "css-var",
+    "css-variables",
+    "hover",
+    "css",
+    "scss",
+    "variables",
+    "intellisense",
+    "vscode"
+  ],
   "categories": [
     "Other"
   ],
