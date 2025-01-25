@@ -2,7 +2,7 @@ const path = require("path");
 
 module.exports = {
   target: "node",
-  mode: "development",
+  mode: "none",
   entry: "./src/extension.ts",
   output: {
     path: path.resolve(__dirname, "dist"),
