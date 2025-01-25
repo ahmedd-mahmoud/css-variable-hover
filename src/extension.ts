@@ -1,11 +1,14 @@
 import * as vscode from "vscode";
 import * as path from "path";
 
+interface VariableDefinition {
+  value: string;
+  source: string;
+  mediaQuery?: string;
+}
+
 interface VariableCache {
-  [key: string]: {
-    value: string;
-    source: string;
-  };
+  [key: string]: VariableDefinition[];
 }
 
 interface WatchedFiles {
@@ -184,20 +187,37 @@ export function activate(context: vscode.ExtensionContext) {
         const matchedVar = matches.find((m) => m.range.contains(position));
         if (!matchedVar) return;
 
-        const cached = variableCache[matchedVar.variable];
-        if (!cached) return;
+        const definitions = variableCache[matchedVar.variable];
+        if (!definitions?.length) return;
 
         // Create hover content
         const markdown = new vscode.MarkdownString();
 
         if (matchedVar.isCustomClass) {
           markdown.appendCodeblock(
-            `${matchedVar.className} → var(${matchedVar.variable}): ${cached.value}\n/* Defined in ${cached.source} */`,
+            `${matchedVar.className} → var(${matchedVar.variable})`,
             "css"
           );
-        } else {
+        }
+
+        // Group definitions by source file
+        const groupedDefs = definitions.reduce((acc, def) => {
+          const key = def.source;
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(def);
+          return acc;
+        }, {} as { [key: string]: VariableDefinition[] });
+
+        // Display all definitions grouped by source
+        for (const [source, defs] of Object.entries(groupedDefs)) {
           markdown.appendCodeblock(
-            `${matchedVar.variable}: ${cached.value}\n/* Defined in ${cached.source} */`,
+            `/* ${source} */\n${defs
+              .map((def) =>
+                def.mediaQuery
+                  ? `@media ${def.mediaQuery} {\n  ${matchedVar.variable}: ${def.value};\n}`
+                  : `${matchedVar.variable}: ${def.value};`
+              )
+              .join("\n")}`,
             "css"
           );
         }
@@ -350,22 +370,26 @@ async function updateCacheForFile(uri: vscode.Uri) {
         .join("\n");
     }
 
-    // Find all variable definitions
-    const varDefRegex = /--([\w-]+)\s*:\s*([^;]+);/g;
-    let match;
+    const mediaQueryRegex = /@media[^{]+{([^}]+)}/g;
+    let mediaMatch;
 
-    while ((match = varDefRegex.exec(searchText)) !== null) {
-      const varName = "--" + match[1];
-      const value = match[2].trim();
-      variableCache[varName] = {
-        value,
-        source: relativePath,
-      };
+    // Remove media query blocks from the main content
+    const mainContent = searchText.replace(mediaQueryRegex, "");
+
+    // Process variables in the main content (outside media queries)
+    processVariables(mainContent, relativePath);
+
+    // Process variables inside media queries
+    while ((mediaMatch = mediaQueryRegex.exec(searchText)) !== null) {
+      const mediaQuery = mediaMatch[0]
+        .substring(6, mediaMatch[0].indexOf("{"))
+        .trim();
+
+      const mediaContent = mediaMatch[1];
+      processVariables(mediaContent, relativePath, mediaQuery);
     }
 
-    // For JS/TS files, look for Tailwind config
     if (/tailwind\.config\.(js|ts|cjs|mjs)$/.test(uri.fsPath)) {
-      // Parse theme configuration sections
       const themeContent = extractThemeContent(text);
       if (themeContent) {
         await parseTailwindConfig(themeContent, relativePath);
@@ -373,6 +397,26 @@ async function updateCacheForFile(uri: vscode.Uri) {
     }
   } catch (error) {
     console.error(`Error updating cache for ${uri.fsPath}:`, error);
+  }
+}
+
+function processVariables(text: string, source: string, mediaQuery?: string) {
+  const varDefRegex = /--([\w-]+)\s*:\s*([^;]+);/g;
+  let match;
+
+  while ((match = varDefRegex.exec(text)) !== null) {
+    const varName = "--" + match[1];
+    const value = match[2].trim();
+
+    if (!variableCache[varName]) {
+      variableCache[varName] = [];
+    }
+
+    variableCache[varName].push({
+      value,
+      source,
+      mediaQuery,
+    });
   }
 }
 
