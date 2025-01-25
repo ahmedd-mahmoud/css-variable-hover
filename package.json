@@ -3,10 +3,10 @@
   "displayName": "CSS Variable Hover",
   "description": "Shows CSS variable and Tailwind CSS custom classes values on hover",
   "version": "0.0.1",
-  "publisher": "ahmedd-mahmoud",
+  "publisher": "AhmedMahran",
   "license": "MIT",
   "engines": {
-    "vscode": "^1.60.0"
+    "vscode": "^1.96.0"
   },
   "repository": {
     "type": "git",
