@@ -100,5 +100,5 @@ jobs:
       - name: Publish to Marketplace
         run: vsce publish -p ${{ secrets.VSCE_TOKEN }}
         env:
-          VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
+          VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
         
