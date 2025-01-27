@@ -8,13 +8,37 @@ CSS Variable Hover is a Visual Studio Code extension that provides hover informa
 
 ## Features
 
+- Supports CSS, SCSS, JavaScript, TypeScript, React, Vue, and HTML files
 - Hover over CSS variables to see their values and source files.
+
+<p align="center">
+    <img src="images/readme_img1.gif" alt="readme_img">
+</p>
+
 - Hover over Tailwind CSS custom classes to see the corresponding CSS variable values.
+
+<p align="center">
+    <img src="images/readme_img2.gif" alt="readme_img">
+</p>
+
 - Support multiple variables definitions
 - Supports variables defined in media queries
-- Automatically watches CSS, SCSS, and Tailwind configuration files for changes.
+
+<p align="center">
+    <img src="images/readme_img4.gif" alt="readme_img">
+</p>
+
+- Automatically watches CSS, SCSS, and Tailwind configuration files for changes with option to refresh variables manually.
+
+<p align="center">
+    <img src="images/readme_img5.png" alt="readme_img">
+</p>
+
 - Allows adding additional files to watch for CSS variables.
-- Supports CSS, SCSS, JavaScript, TypeScript, React, Vue, and HTML files
+
+<p align="center">
+    <img src="images/readme_img6.png" alt="readme_img">
+</p>
 
 ## Extension Settings
 
