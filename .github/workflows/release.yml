@@ -93,9 +93,6 @@ jobs:
             *.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-      - name: Package extension
-        run: vsce package
         
       - name: Publish to Marketplace
         run: vsce publish -p ${{ secrets.VSCE_TOKEN }}
