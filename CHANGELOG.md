@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.0.0](https://github.com/ahmedd-mahmoud/css-variable-hover/compare/v0.0.2...v1.0.0) (2025-01-27)
+
+
+### ✨ Features
+
+* add publish script to release workflow ([365f89c](https://github.com/ahmedd-mahmoud/css-variable-hover/commit/365f89cb79d2eea9841251555edff81d9a4680fc))
+
+
+### 🐛 Bug Fixes
+
+* modify env variable key ([72e9b52](https://github.com/ahmedd-mahmoud/css-variable-hover/commit/72e9b52dd77d81b1a5bff011b58014aa83639c0d))
+
+
+### 🔧 Chores
+
+* Merge branch 'main' of https://github.com/ahmedd-mahmoud/css-variables ([4a38f8d](https://github.com/ahmedd-mahmoud/css-variable-hover/commit/4a38f8d52a62c383add066742b0db4f3775761fc))
+* Merge pull request #1 from ahmedd-mahmoud/feature/update-release-workflow ([c467dbe](https://github.com/ahmedd-mahmoud/css-variable-hover/commit/c467dbe837bbd98a19ab6dce7b461a2bab134278)), closes [#1](https://github.com/ahmedd-mahmoud/css-variable-hover/issues/1)
+* Update CHANGELOG.md ([cbd0130](https://github.com/ahmedd-mahmoud/css-variable-hover/commit/cbd013062df59e75e7f4f1e93cda0ca48dfa4d48))
+* refactor file watcher logic ([dcf234b](https://github.com/ahmedd-mahmoud/css-variable-hover/commit/dcf234bf22e2b1815f52e26013f8c4178eb49b4b))
+* remove unnecessary comments ([f60881b](https://github.com/ahmedd-mahmoud/css-variable-hover/commit/f60881bb8112536d44681fd7e2efff8a5b0ea66c))
+
+
+### 📚 Documentation
+
+* update readme file ([b633b6e](https://github.com/ahmedd-mahmoud/css-variable-hover/commit/b633b6e2a4ab42490f0eb8ade4f3e9f64c23824c))
+
 ### 0.0.2 (2025-01-25)
 
 
