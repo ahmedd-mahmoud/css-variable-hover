@@ -1,11 +1,9 @@
 import * as vscode from "vscode";
-import { FileWatcher } from "./services/fileWatcher";
+import { setupWatchers, disposeWatchers } from "./services/fileWatcher";
 import { HoverProvider } from "./services/hoverProvider";
 import { initializeCache } from "./services/variableCache";
 import { checkForVariableDefinitions } from "./utils/parsers";
 import { addFileToWatched, isFileWatched } from "./services/config";
-
-const fileWatcher = new FileWatcher();
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("CSS Variables Hover extension is now active");
@@ -50,9 +48,14 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register providers and services
   context.subscriptions.push(
-    vscode.languages.registerHoverProvider(supportedLanguages, hoverProvider),
-    fileWatcher
+    vscode.languages.registerHoverProvider(supportedLanguages, hoverProvider)
   );
+
+  // Setup file watchers
+  setupWatchers().catch((error) => {
+    console.error("Failed to setup file watchers:", error);
+    vscode.window.showErrorMessage("Failed to setup file watchers");
+  });
 
   // Create status bar item
   const statusBarItem = vscode.window.createStatusBarItem(
@@ -90,5 +93,5 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-  fileWatcher?.dispose();
+  disposeWatchers();
 }

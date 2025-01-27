@@ -2,59 +2,48 @@ import * as vscode from "vscode";
 import { getWatchedFiles } from "./config";
 import { updateCacheForFile, initializeCache } from "./variableCache";
 
-export class FileWatcher {
-  private fileWatcher!: vscode.FileSystemWatcher;
-  private configWatcher!: vscode.FileSystemWatcher;
+let fileWatcher: vscode.FileSystemWatcher | undefined;
+let configWatcher: vscode.FileSystemWatcher | undefined;
 
-  constructor() {
-    this.setupMainWatcher();
-    this.setupSettingsWatcher();
-    this.setupAdditionalWatchers();
-  }
+export async function setupWatchers() {
+  // Main watcher
+  fileWatcher = vscode.workspace.createFileSystemWatcher(
+    "**/*.{css,scss,tailwind.config.js,tailwind.config.ts}",
+    false,
+    false,
+    false
+  );
+  fileWatcher.onDidChange(updateCacheForFile);
+  fileWatcher.onDidCreate(updateCacheForFile);
+  fileWatcher.onDidDelete(() => initializeCache());
 
-  private setupMainWatcher() {
-    this.fileWatcher = vscode.workspace.createFileSystemWatcher(
-      "**/*.{css,scss,tailwind.config.js,tailwind.config.ts}",
+  // Settings watcher
+  const settingsWatcher = vscode.workspace.createFileSystemWatcher(
+    "**/.vscode/settings.json",
+    false,
+    false,
+    false
+  );
+  settingsWatcher.onDidChange(() => initializeCache());
+
+  // Additional watchers
+  const { additionalFiles } = await getWatchedFiles();
+  if (additionalFiles.length > 0) {
+    const pattern = `**/{${additionalFiles.join(",")}}`;
+    configWatcher?.dispose();
+    configWatcher = vscode.workspace.createFileSystemWatcher(
+      pattern,
       false,
       false,
       false
     );
-
-    this.fileWatcher.onDidChange(updateCacheForFile);
-    this.fileWatcher.onDidCreate(updateCacheForFile);
-    this.fileWatcher.onDidDelete(() => initializeCache());
+    configWatcher.onDidChange(updateCacheForFile);
+    configWatcher.onDidCreate(updateCacheForFile);
+    configWatcher.onDidDelete(() => initializeCache());
   }
+}
 
-  private setupSettingsWatcher() {
-    const settingsWatcher = vscode.workspace.createFileSystemWatcher(
-      "**/.vscode/settings.json",
-      false,
-      false,
-      false
-    );
-    settingsWatcher.onDidChange(() => initializeCache());
-  }
-
-  private async setupAdditionalWatchers() {
-    const { additionalFiles } = await getWatchedFiles();
-    if (additionalFiles.length > 0) {
-      const pattern = `**/{${additionalFiles.join(",")}}`;
-      this.configWatcher?.dispose();
-      this.configWatcher = vscode.workspace.createFileSystemWatcher(
-        pattern,
-        false,
-        false,
-        false
-      );
-
-      this.configWatcher.onDidChange(updateCacheForFile);
-      this.configWatcher.onDidCreate(updateCacheForFile);
-      this.configWatcher.onDidDelete(() => initializeCache());
-    }
-  }
-
-  dispose() {
-    this.fileWatcher?.dispose();
-    this.configWatcher?.dispose();
-  }
+export function disposeWatchers() {
+  fileWatcher?.dispose();
+  configWatcher?.dispose();
 }
