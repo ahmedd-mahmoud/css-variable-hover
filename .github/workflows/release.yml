@@ -1,4 +1,4 @@
-name: GitHub Release
+name: GitHub Release & VSCode Publish
 
 on:
   workflow_dispatch:
@@ -53,6 +53,9 @@ jobs:
           fi
           npm install -g standard-version
 
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+
       - name: Create Release with standard-version
         id: release
         run: |
@@ -90,3 +93,12 @@ jobs:
             *.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+      - name: Package extension
+        run: vsce package
+        
+      - name: Publish to Marketplace
+        run: vsce publish -p ${{ secrets.VSCE_TOKEN }}
+        env:
+          VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
+        
