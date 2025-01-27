@@ -1,4 +1,3 @@
-// utils/parsers.ts
 import * as vscode from "vscode";
 import { tailwindCustomClasses } from "../services/variableCache";
 

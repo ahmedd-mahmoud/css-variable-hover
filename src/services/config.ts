@@ -1,4 +1,3 @@
-// services/config.ts
 import * as vscode from "vscode";
 import * as path from "path";
 import { WatchedFiles } from "../types";

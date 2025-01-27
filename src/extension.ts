@@ -1,12 +1,11 @@
-// extension.ts
 import * as vscode from "vscode";
-import { FileWatcherService } from "./services/fileWatcher";
+import { FileWatcher } from "./services/fileWatcher";
 import { HoverProvider } from "./services/hoverProvider";
 import { initializeCache } from "./services/variableCache";
 import { checkForVariableDefinitions } from "./utils/parsers";
 import { addFileToWatched, isFileWatched } from "./services/config";
 
-const fileWatcher = new FileWatcherService();
+const fileWatcher = new FileWatcher();
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("CSS Variables Hover extension is now active");

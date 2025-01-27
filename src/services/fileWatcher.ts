@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { getWatchedFiles } from "./config";
 import { updateCacheForFile, initializeCache } from "./variableCache";
 
-export class FileWatcherService {
+export class FileWatcher {
   private fileWatcher!: vscode.FileSystemWatcher;
   private configWatcher!: vscode.FileSystemWatcher;
 

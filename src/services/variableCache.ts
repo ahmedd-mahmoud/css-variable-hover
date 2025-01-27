@@ -1,4 +1,3 @@
-// services/variableCache.ts
 import * as vscode from "vscode";
 import { VariableCache, TailwindCustomClasses } from "../types";
 import {

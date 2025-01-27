@@ -1,4 +1,3 @@
-// services/hoverProvider.ts
 import * as vscode from "vscode";
 import { VariableDefinition } from "../types";
 import { variableCache, tailwindCustomClasses } from "./variableCache";
