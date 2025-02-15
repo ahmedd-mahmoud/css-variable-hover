@@ -53,9 +53,6 @@ jobs:
           fi
           npm install -g standard-version
 
-      - name: Install vsce
-        run: npm install -g @vscode/vsce
-
       - name: Create Release with standard-version
         id: release
         run: |
@@ -93,9 +90,17 @@ jobs:
             *.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
-      - name: Publish to Marketplace
-        run: vsce publish -p ${{ secrets.VSCE_TOKEN }}
-        env:
-          VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
-        
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Publish to Open VSX Registry
+        uses: HaaLeo/publish-vscode-extension@v1
+        with:
+          pat: ${{ secrets.VSCE_TOKEN }}
