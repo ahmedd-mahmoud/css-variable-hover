@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.2](https://github.com/ahmedd-mahmoud/css-variable-hover/compare/v1.0.1...v1.0.2) (2025-02-15)
+
+
+### 🐛 Bug Fixes
+
+* variable regex test ([8d8b73a](https://github.com/ahmedd-mahmoud/css-variable-hover/commit/8d8b73a72ef2e4d0016df30b1757b2e10d405e05))
+
+
+### ⚙️ CI
+
+* fix release workflow ([9db2145](https://github.com/ahmedd-mahmoud/css-variable-hover/commit/9db2145cc1ac1ef1eee2abfebf56c5ff0d622dac))
+
 ### [1.0.1](https://github.com/ahmedd-mahmoud/css-variable-hover/compare/v1.0.0...v1.0.1) (2025-01-27)
 
 
