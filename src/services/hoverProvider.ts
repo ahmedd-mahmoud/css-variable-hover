@@ -89,7 +89,8 @@ export class HoverProvider implements vscode.HoverProvider {
         const cssVars = Object.keys(variableCache);
         for (const cssVar of cssVars) {
           const varName = cssVar.substring(2);
-          if (currentClass.includes(varName)) {
+          const regex = new RegExp(`\\b${varName}\\b`);
+          if (regex.test(currentClass)) {
             const startPos = line.indexOf(currentClass);
             if (startPos !== -1) {
               matches.push({
