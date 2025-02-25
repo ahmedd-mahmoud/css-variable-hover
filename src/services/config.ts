@@ -41,9 +41,37 @@ export async function addFileToWatched(uri: vscode.Uri): Promise<void> {
   }
 }
 
+export async function isFileIgnored(uri: vscode.Uri): Promise<boolean> {
+  const relativePath = vscode.workspace.asRelativePath(uri);
+  const config = vscode.workspace.getConfiguration("cssVarHover");
+  const ignoredFiles = config.get<string[]>("ignoredFiles", []);
+  return ignoredFiles.includes(relativePath);
+}
+
+export async function addFileToIgnored(uri: vscode.Uri): Promise<void> {
+  const relativePath = vscode.workspace.asRelativePath(uri);
+  const config = vscode.workspace.getConfiguration("cssVarHover");
+  const ignoredFiles = config.get<string[]>("ignoredFiles", []);
+
+  if (!ignoredFiles.includes(relativePath)) {
+    ignoredFiles.push(relativePath);
+    await config.update(
+      "ignoredFiles",
+      ignoredFiles,
+      vscode.ConfigurationTarget.Workspace
+    );
+
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+    if (workspaceFolder) {
+      await updateSettingsFile(workspaceFolder, undefined, ignoredFiles);
+    }
+  }
+}
+
 async function updateSettingsFile(
   workspaceFolder: vscode.WorkspaceFolder,
-  watchedFiles: string[]
+  watchedFiles?: string[],
+  ignoredFiles?: string[]
 ): Promise<void> {
   const settingsPath = path.join(
     workspaceFolder.uri.fsPath,
@@ -54,18 +82,23 @@ async function updateSettingsFile(
   try {
     const settingsDoc = await vscode.workspace.openTextDocument(settingsPath);
     const settings = JSON.parse(settingsDoc.getText());
-    settings["cssVarHover.watchedFiles"] = watchedFiles;
+    if (watchedFiles) {
+      settings["cssVarHover.watchedFiles"] = watchedFiles;
+    }
+    if (ignoredFiles) {
+      settings["cssVarHover.ignoredFiles"] = ignoredFiles;
+    }
     await vscode.workspace.fs.writeFile(
       vscode.Uri.file(settingsPath),
       Buffer.from(JSON.stringify(settings, null, 2))
     );
   } catch (error) {
-    // Create .vscode directory and settings.json if they don't exist
     await vscode.workspace.fs.createDirectory(
       vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, ".vscode"))
     );
     const settings = {
-      "cssVarHover.watchedFiles": watchedFiles,
+      ...(watchedFiles && { "cssVarHover.watchedFiles": watchedFiles }),
+      ...(ignoredFiles && { "cssVarHover.ignoredFiles": ignoredFiles }),
     };
     await vscode.workspace.fs.writeFile(
       vscode.Uri.file(settingsPath),

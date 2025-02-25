@@ -61,6 +61,11 @@
           },
           "default": [],
           "description": "Additional files to watch for CSS variables"
+        },
+        "cssVarHover.ignoredFiles": {
+          "type": "array",
+          "default": [],
+          "description": "Files to ignore for CSS variable detection"
         }
       }
     }

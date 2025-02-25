@@ -3,7 +3,12 @@ import { setupWatchers, disposeWatchers } from "./services/fileWatcher";
 import { HoverProvider } from "./services/hoverProvider";
 import { initializeCache } from "./services/variableCache";
 import { checkForVariableDefinitions } from "./utils/parsers";
-import { addFileToWatched, isFileWatched } from "./services/config";
+import {
+  addFileToWatched,
+  isFileWatched,
+  addFileToIgnored,
+  isFileIgnored,
+} from "./services/config";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("CSS Variables Hover extension is now active");
@@ -27,19 +32,27 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(async (editor) => {
       if (editor && !isFileWatched(editor.document.uri)) {
-        const hasVariables = await checkForVariableDefinitions(editor.document);
-        if (hasVariables) {
-          const addFile = await vscode.window.showInformationMessage(
-            `Found CSS variable definitions in unwatched file. Would you like to watch ${vscode.workspace.asRelativePath(
-              editor.document.uri
-            )} for CSS variables?`,
-            "Yes",
-            "No"
+        const isIgnored = await isFileIgnored(editor.document.uri);
+        if (!isIgnored) {
+          const hasVariables = await checkForVariableDefinitions(
+            editor.document
           );
+          if (hasVariables) {
+            const response = await vscode.window.showInformationMessage(
+              `Found CSS variable definitions in unwatched file. Would you like to watch ${vscode.workspace.asRelativePath(
+                editor.document.uri
+              )} for CSS variables?`,
+              "Yes",
+              "No",
+              "Ignore"
+            );
 
-          if (addFile === "Yes") {
-            await addFileToWatched(editor.document.uri);
-            await initializeCache();
+            if (response === "Yes") {
+              await addFileToWatched(editor.document.uri);
+              await initializeCache();
+            } else if (response === "Ignore") {
+              await addFileToIgnored(editor.document.uri);
+            }
           }
         }
       }
