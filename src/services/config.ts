@@ -68,6 +68,11 @@ export async function addFileToIgnored(uri: vscode.Uri): Promise<void> {
   }
 }
 
+export function isInNodeModules(uri: vscode.Uri): boolean {
+  const relativePath = vscode.workspace.asRelativePath(uri);
+  return relativePath.includes("node_modules");
+}
+
 async function updateSettingsFile(
   workspaceFolder: vscode.WorkspaceFolder,
   watchedFiles?: string[],

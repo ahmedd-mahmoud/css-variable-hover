@@ -12,7 +12,8 @@ export let tailwindCustomClasses: TailwindCustomClasses = {};
 export async function initializeCache() {
   variableCache = {};
   const files = await vscode.workspace.findFiles(
-    "**/*.{css,scss,tailwind.config.js,tailwind.config.ts}"
+    "**/*.{css,scss,tailwind.config.js,tailwind.config.ts}",
+    "**/node_modules/**" // Exclude pattern for node_modules
   );
 
   for (const file of files) {
